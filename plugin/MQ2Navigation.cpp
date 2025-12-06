@@ -410,7 +410,6 @@ MQ2NavigationPlugin::MQ2NavigationPlugin()
 	auto logger = std::make_shared<spdlog::logger>("MQ2Nav", m_chatSink);
 	spdlog::details::registry::instance().initialize_logger(logger);
 
-	logger->sinks().push_back(m_chatSink);
 #if defined(_DEBUG)
 	logger->sinks().push_back(std::make_shared<spdlog::sinks::msvc_sink_mt>());
 #endif
