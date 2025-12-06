@@ -822,7 +822,7 @@ void MQ2NavigationPlugin::Command_Navigate(std::string_view line)
 			glm::vec3 loc = GetSpawnPosition(pChar);
 			nav::AddWaypoint(nav::Waypoint{ waypointName, loc, desc });
 
-			SPDLOG_INFO("Recorded waypoint: {} at {}", waypointName, loc.yxz());
+			SPDLOG_INFO("Recorded waypoint: {} at {:.2f}", waypointName, loc.yxz());
 		}
 
 		return;
@@ -1175,7 +1175,7 @@ void MQ2NavigationPlugin::PressMovementKey(FacingType facing)
 
 void MQ2NavigationPlugin::MovementFinished(const glm::vec3& dest, FacingType facing)
 {
-	SPDLOG_INFO("Reached destination at: {}", dest.yxz());
+	SPDLOG_INFO("Reached destination at: {:.2f}", dest.yxz());
 
 	if (m_endingGround || m_pEndingSwitch)
 	{
@@ -1258,7 +1258,7 @@ void MQ2NavigationPlugin::AttemptMovement()
 		if (m_currentWaypoint != nextPosition)
 		{
 			m_currentWaypoint = nextPosition;
-			SPDLOG_DEBUG("Moving towards: {}", nextPosition.xzy());
+			SPDLOG_DEBUG("Moving towards: {:.2f}", nextPosition.xzy());
 		}
 
 		glm::vec3 eqPoint(nextPosition.x, nextPosition.z, nextPosition.y);
@@ -1588,11 +1588,11 @@ std::shared_ptr<DestinationInfo> MQ2NavigationPlugin::ParseDestinationInternal(s
 		{
 			if (result->heightType == HeightType::Nearest)
 			{
-				SPDLOG_INFO("Navigating to loc: {}, Nearest to {}", tmpDestination.xy(), tmpDestination.z);
+				SPDLOG_INFO("Navigating to loc: {:.2f}, Nearest to {:.2f}", tmpDestination.xy(), tmpDestination.z);
 			}
 			else
 			{
-				SPDLOG_INFO("Navigating to loc: {}", tmpDestination);
+				SPDLOG_INFO("Navigating to loc: {:.2f}", tmpDestination);
 			}
 
 			// swap the x/y coordinates for silly eq coordinate system

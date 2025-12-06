@@ -340,7 +340,7 @@ std::unique_ptr<StraightPath> NavigationPath::RecomputePath(
 	{
 		if (!incremental)
 		{
-			SPDLOG_ERROR("Could not locate starting point on navmesh: {}", startPos.zxy());
+			SPDLOG_ERROR("Could not locate starting point on navmesh: {:.2f}", startPos.zxy());
 		}
 
 		m_failed = true;
@@ -359,7 +359,7 @@ std::unique_ptr<StraightPath> NavigationPath::RecomputePath(
 	{
 		if (!incremental)
 		{
-			SPDLOG_ERROR("Could not locate destination on navmesh: {}", endPos.zxy());
+			SPDLOG_ERROR("Could not locate destination on navmesh: {:.2f}", endPos.zxy());
 		}
 
 		m_failed = true;
@@ -436,12 +436,12 @@ std::unique_ptr<StraightPath> NavigationPath::RecomputePath(
 	if (dtStatusDetail(status, DT_OUT_OF_NODES)
 		|| dtStatusDetail(status, DT_BUFFER_TOO_SMALL))
 	{
-		SPDLOG_DEBUG("findPath from {} to {} failed: incomplete result ({0:#x})",
+		SPDLOG_DEBUG("findPath from {} to {} failed: incomplete result ({:#x})",
 			startPos, endPos, (status & DT_STATUS_DETAIL_MASK));
 
 		if (!incremental)
 		{
-			SPDLOG_ERROR("Could not reach destination (too far away): {}", endPos.zxy());
+			SPDLOG_ERROR("Could not reach destination (too far away): {:.2f}", endPos.zxy());
 		}
 
 		m_failed = true;
@@ -452,11 +452,11 @@ std::unique_ptr<StraightPath> NavigationPath::RecomputePath(
 		|| dtStatusDetail(status, DT_PARTIAL_RESULT))
 	{
 		// Partial path, did not find path to target
-		SPDLOG_DEBUG("findPath from {} to {} returned a partial result.", startPos, endPos);
+		SPDLOG_DEBUG("findPath from {:.2f} to {:.2f} returned a partial result.", startPos, endPos);
 
 		if (!incremental)
 		{
-			SPDLOG_ERROR("Could not find path to destination: {}", endPos.zxy());
+			SPDLOG_ERROR("Could not find path to destination: {:.2f}", endPos.zxy());
 		}
 
 		m_failed = true;
