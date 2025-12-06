@@ -22,15 +22,12 @@
 #include <DetourNavMesh.h>
 #include <DetourNavMeshBuilder.h>
 
-#include <SDL2/SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
 #include <ppl.h>
 #include <agents.h>
-#include <mutex>
-#include <fstream>
 
 //----------------------------------------------------------------------------
 
@@ -637,14 +634,13 @@ void NavMeshTool::RemoveTile(const glm::vec3& pos)
 	if (!navMesh) return;
 
 	const glm::vec3& bmin = m_navMesh->GetNavMeshBoundsMin();
-	const glm::vec3& bmax = m_navMesh->GetNavMeshBoundsMax();
 
 	const float ts = m_config.tileSize * m_config.cellSize;
-	const int tx = (int)((pos[0] - bmin[0]) / ts);
-	const int ty = (int)((pos[2] - bmin[2]) / ts);
+	const int tx = static_cast<int>((pos[0] - bmin[0]) / ts);
+	const int ty = static_cast<int>((pos[2] - bmin[2]) / ts);
 
 	dtTileRef tileRef = navMesh->getTileRefAt(tx, ty, 0);
-	navMesh->removeTile(tileRef, 0, 0);
+	navMesh->removeTile(tileRef, nullptr, nullptr);
 }
 
 void NavMeshTool::RemoveAllTiles()
@@ -654,12 +650,10 @@ void NavMeshTool::RemoveAllTiles()
 
 	for (int i = 0; i < navMesh->getMaxTiles(); ++i)
 	{
-		const dtMeshTile* tile = nullptr;
-
-		if ((tile = const_cast<const dtNavMesh*>(navMesh.get())->getTile(i))
+		if (const dtMeshTile* tile; ((tile = const_cast<const dtNavMesh*>(navMesh.get())->getTile(i)))
 			&& tile->header != nullptr)
 		{
-			navMesh->removeTile(navMesh->getTileRef(tile), 0, 0);
+			navMesh->removeTile(navMesh->getTileRef(tile), nullptr, nullptr);
 		}
 	}
 }
@@ -695,8 +689,8 @@ void NavMeshTool::BuildTile(const glm::vec3& pos)
 	const glm::vec3& bmax = m_navMesh->GetNavMeshBoundsMax();
 
 	const float ts = m_config.tileSize * m_config.cellSize;
-	const int tx = (int)((pos[0] - bmin[0]) / ts);
-	const int ty = (int)((pos[2] - bmin[2]) / ts);
+	const int tx = static_cast<int>((pos[0] - bmin[0]) / ts);
+	const int ty = static_cast<int>((pos[2] - bmin[2]) / ts);
 
 	glm::vec3 tileBmin, tileBmax;
 	tileBmin[0] = bmin[0] + tx * ts;
@@ -956,12 +950,11 @@ deleting_unique_ptr<rcCompactHeightfield> NavMeshTool::rasterizeGeometry(rcConfi
 	if (!rcCreateHeightfield(m_ctx, *solid, cfg.width, cfg.height, cfg.bmin, cfg.bmax, cfg.cs, cfg.ch))
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not create solid heightfield.");
-		return 0;
+		return nullptr;
 	}
 
 	const float* verts = m_geom->getMeshLoader()->getVerts();
 	const int nverts = m_geom->getMeshLoader()->getVertCount();
-	const int ntris = m_geom->getMeshLoader()->getTriCount();
 	const rcChunkyTriMesh* chunkyMesh = m_geom->getChunkyMesh();
 
 	// Allocate array that can hold triangle flags.
@@ -978,7 +971,7 @@ deleting_unique_ptr<rcCompactHeightfield> NavMeshTool::rasterizeGeometry(rcConfi
 	int cid[512];// TODO: Make grow when returning too many items.
 	const int ncid = rcGetChunksOverlappingRect(chunkyMesh, tbmin, tbmax, cid, 512);
 	if (!ncid)
-		return 0;
+		return nullptr;
 
 	for (int i = 0; i < ncid; ++i)
 	{
@@ -1009,7 +1002,7 @@ deleting_unique_ptr<rcCompactHeightfield> NavMeshTool::rasterizeGeometry(rcConfi
 	if (!rcBuildCompactHeightfield(m_ctx, cfg.walkableHeight, cfg.walkableClimb, *solid, *chf))
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not build compact data.");
-		return 0;
+		return nullptr;
 	}
 
 	return std::move(chf);
@@ -1026,7 +1019,7 @@ unsigned char* NavMeshTool::buildTileMesh(
 	if (!m_geom || !m_geom->getMeshLoader() || !m_geom->getChunkyMesh())
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Input mesh is not specified.");
-		return 0;
+		return nullptr;
 	}
 
 	// Init build configuration from GUI
@@ -1087,13 +1080,13 @@ unsigned char* NavMeshTool::buildTileMesh(
 
 	deleting_unique_ptr<rcCompactHeightfield> chf = rasterizeGeometry(cfg);
 	if (!chf)
-		return 0;
+		return nullptr;
 
 	// Erode the walkable area by agent radius.
 	if (!rcErodeWalkableArea(m_ctx, cfg.walkableRadius, *chf))
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not erode.");
-		return 0;
+		return nullptr;
 	}
 
 	// Mark areas.
@@ -1139,14 +1132,14 @@ unsigned char* NavMeshTool::buildTileMesh(
 		if (!rcBuildDistanceField(m_ctx, *chf))
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not build distance field.");
-			return false;
+			return nullptr;
 		}
 
 		// Partition the walkable surface into simple regions without holes.
 		if (!rcBuildRegions(m_ctx, *chf, cfg.borderSize, cfg.minRegionArea, cfg.mergeRegionArea))
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not build watershed regions.");
-			return false;
+			return nullptr;
 		}
 	}
 	else if (m_config.partitionType == PartitionType::MONOTONE)
@@ -1156,7 +1149,7 @@ unsigned char* NavMeshTool::buildTileMesh(
 		if (!rcBuildRegionsMonotone(m_ctx, *chf, cfg.borderSize, cfg.minRegionArea, cfg.mergeRegionArea))
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not build monotone regions.");
-			return false;
+			return nullptr;
 		}
 	}
 	else // PartitionType::LAYERS
@@ -1165,7 +1158,7 @@ unsigned char* NavMeshTool::buildTileMesh(
 		if (!rcBuildLayerRegions(m_ctx, *chf, cfg.borderSize, cfg.minRegionArea))
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not build layer regions.");
-			return false;
+			return nullptr;
 		}
 	}
 
@@ -1174,12 +1167,12 @@ unsigned char* NavMeshTool::buildTileMesh(
 	if (!rcBuildContours(m_ctx, *chf, cfg.maxSimplificationError, cfg.maxEdgeLen, *cset))
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not create contours.");
-		return 0;
+		return nullptr;
 	}
 
 	if (cset->nconts == 0)
 	{
-		return 0;
+		return nullptr;
 	}
 
 	// Build polygon navmesh from the contours.
@@ -1187,7 +1180,7 @@ unsigned char* NavMeshTool::buildTileMesh(
 	if (!rcBuildPolyMesh(m_ctx, *cset, cfg.maxVertsPerPoly, *pmesh))
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could not triangulate contours.");
-		return 0;
+		return nullptr;
 	}
 
 	// Build detail mesh.
@@ -1197,7 +1190,7 @@ unsigned char* NavMeshTool::buildTileMesh(
 		*dmesh))
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "buildNavigation: Could build polymesh detail.");
-		return 0;
+		return nullptr;
 	}
 
 	chf.reset();
@@ -1212,7 +1205,7 @@ unsigned char* NavMeshTool::buildTileMesh(
 			// The vertex indices are ushorts, and cannot point to more than 0xffff vertices.
 			SPDLOG_LOGGER_ERROR(m_logger, "Too many vertices per tile {} (max: {:#x}).",
 				pmesh->nverts, (uint16_t)0xffff);
-			return 0;
+			return nullptr;
 		}
 
 		// Update poly flags from areas.
@@ -1255,7 +1248,7 @@ unsigned char* NavMeshTool::buildTileMesh(
 		if (!dtCreateNavMeshData(&params, &navData, &navDataSize))
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "Could not build Detour navmesh.");
-			return 0;
+			return nullptr;
 		}
 	}
 

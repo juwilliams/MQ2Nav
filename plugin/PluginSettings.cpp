@@ -23,9 +23,9 @@ SettingsData& GetSettings()
 	return g_settings;
 }
 
-static inline bool LoadBoolSetting(const std::string& name, bool default)
+static inline bool LoadBoolSetting(const std::string& name, bool defaultValue)
 {
-	return mq::GetPrivateProfileBool(SettingsSection, name, default, INIFileName);
+	return mq::GetPrivateProfileBool(SettingsSection, name, defaultValue, INIFileName);
 }
 
 static inline glm::vec3 LoadVec3Setting(const std::string& name, const glm::vec3& defaultValue)

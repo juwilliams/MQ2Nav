@@ -46,7 +46,8 @@ public:
 
 	static bool IsValid(ZoneData* zd)
 	{
-		return fs::exists(GetZoneFile(zd), std::error_code());
+		std::error_code ec;
+		return fs::exists(GetZoneFile(zd), ec);
 	}
 
 	virtual bool Load() override
@@ -173,7 +174,8 @@ public:
 	{
 		std::string filename = fmt::format("{}\\{}.s3d", zd->GetEQPath(), zd->GetZoneName());
 
-		return fs::exists(filename, std::error_code());
+		std::error_code ec;
+		return fs::exists(filename, ec);
 	}
 
 	virtual bool Load() override

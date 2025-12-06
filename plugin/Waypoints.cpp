@@ -126,7 +126,7 @@ void LoadWaypoints(int zoneId)
 
 void SaveWaypoint(const Waypoint& wp)
 {
-	std::string& serialized = wp.Serialize();
+	const std::string& serialized = wp.Serialize();
 
 	WritePrivateProfileString(g_shortZone, wp.name, serialized, INIFileName);
 }
