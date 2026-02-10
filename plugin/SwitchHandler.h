@@ -48,7 +48,7 @@ private:
 
 	struct DoorActivation
 	{
-		BYTE door_id;
+		uint32_t door_id;
 		clock::time_point activation_time;
 	};
 	std::vector<DoorActivation> m_activations;
